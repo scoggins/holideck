@@ -320,9 +320,6 @@ def homebridge_leds_set(rgb):
 	R = int(rgb[:2], 16)
 	G = int(rgb[2:4], 16)
 	B = int(rgb[4:6], 16)
-
-	print "leds-set ", homebridge_last_rgb
-
 	app.licht.set_light_values([R, G, B])
 	homebridge_last_rgb = list(app.licht.get_led_value(0))
 
@@ -331,18 +328,12 @@ def homebridge_leds_set(rgb):
 @app.get('/device/holiday/homebridge/leds/set')
 def homebridge_leds_set():
 	RGB = app.licht.get_led_value(0)
-	print "leds set = %02x%02x%02x\n" % (RGB[0], RGB[1], RGB[2])
-	print "homebridge_last_rgb = ", homebridge_last_rgb
-
-	return "%02x%02x%02x\n" % (RGB[0], RGB[1], RGB[2])
+]	return "%02x%02x%02x\n" % (RGB[0], RGB[1], RGB[2])
 
 @app.get('/device/holiday/homebridge/leds/brightness')
 def homebridge_leds_brightness():
 	RGB = app.licht.get_led_value(0)
 	HLS = colorsys.rgb_to_hls(RGB[0], RGB[1], RGB[2])
-
-
-	print "HLS: ", HLS
 	if HLS[1]:
 		pct = (HLS[1]/255)*100
 	else:
@@ -351,8 +342,6 @@ def homebridge_leds_brightness():
 
 @app.get('/device/holiday/homebridge/leds/brightness/<brightness>')
 def homebridge_leds_brightness(brightness):
-	print "B %s" % brightness
-
 	RGB = app.licht.get_led_value(0)
 	HLS = colorsys.rgb_to_hls(RGB[0], RGB[1], RGB[2])
 	HLS[1] = brightness

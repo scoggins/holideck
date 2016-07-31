@@ -52,7 +52,7 @@ else:
 print "Startup directory %s" % docroot
 default_name = 'index.html'
 
-homebridge_last_rgb = None
+homebridge_last_rgb = [0, 0, 0]
 
 # If we 404, we go to the root.
 # Let's do the basic page loadery here
@@ -318,11 +318,9 @@ def homebridge_switch_status():
 def homebridge_leds_set(rgb):
 	global homebridge_last_rgb
 
-	print "New Colour: ", rgb
 	R = int(rgb[:2], 16)
 	G = int(rgb[2:4], 16)
 	B = int(rgb[4:6], 16)
-	print "New: [%d, %d, %d]" % (R, G, B)
 	app.licht.set_light_values([R, G, B])
 	homebridge_last_rgb = list(app.licht.get_led_value(0))
 

@@ -291,7 +291,7 @@ def homebridge_switch_on():
 	global homebridge_last_rgb
 
 	RGB = [ 255, 255, 255 ]
-	if homebridge_last_rgb:
+	if homebridge_last_rgb != [0, 0, 0]:
 		RGB = homebridge_last_rgb
 	app.licht.set_light_values(RGB)
 	return "1\n"

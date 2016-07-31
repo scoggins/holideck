@@ -1,4 +1,4 @@
-#!/usr/bin/python
+  #!/usr/bin/python
 #
 """
 Internet of Things Access Server - MooresCloud preliminary implementation for Holiday
@@ -16,6 +16,7 @@ __license__ = 'MIT'
 import json, socket, os, sys
 import drawlight, setlights
 from bottle import Bottle, run, static_file, post, request, error, abort
+import colorsys
 
 # On the command line we can tell iotas to go into real mode possibly
 # invoke as python iotas.py nosim to avoid simulation mode -- which holideck won't
@@ -50,6 +51,8 @@ else:
 
 print "Startup directory %s" % docroot
 default_name = 'index.html'
+
+homebridge_last_rgb = None
 
 # If we 404, we go to the root.
 # Let's do the basic page loadery here
@@ -279,6 +282,86 @@ def afl():
 	# Pass that along to wherever it needs to go
 	resp = app.licht.afl(dj)
 	return json.dumps(resp)
+
+# API Code to interface with homebridge-better-http-rgb 
+# -Simon Coggins <simon@zethos.org>
+
+@app.get('/device/holiday/homebridge/switch/on')
+def homebridge_switch_on():
+	global homebridge_last_rgb
+
+	RGB = [ 255, 255, 255 ]
+	if homebridge_last_rgb:
+		RGB = homebridge_last_rgb
+	app.licht.set_light_values(RGB)
+	return "1\n"
+
+@app.get('/device/holiday/homebridge/switch/off')
+def homebridge_switch_off():
+	global homebridge_last_rgb
+	
+	homebridge_last_rgb = list(app.licht.get_led_value(0))
+	app.licht.set_light_values([0, 0, 0])
+	return "1\n"
+
+@app.get('/device/holiday/homebridge/switch/status')
+def homebridge_switch_status():
+	status = app.licht.get_led_value(0)
+	if status[0] == 0 and status[1] == 0 and status[2] == 0:
+		status = "0\n"
+	else:
+		status = "1\n"
+
+	return status
+
+@app.get('/device/holiday/homebridge/leds/set/<rgb>')
+def homebridge_leds_set(rgb):
+	global homebridge_last_rgb
+	R = int(rgb[:2], 16)
+	G = int(rgb[2:4], 16)
+	B = int(rgb[4:6], 16)
+
+	print "leds-set ", homebridge_last_rgb
+
+	app.licht.set_light_values([R, G, B])
+	homebridge_last_rgb = list(app.licht.get_led_value(0))
+
+	return "1\n"
+
+@app.get('/device/holiday/homebridge/leds/set')
+def homebridge_leds_set():
+	RGB = app.licht.get_led_value(0)
+	print "leds set = %02x%02x%02x\n" % (RGB[0], RGB[1], RGB[2])
+	print "homebridge_last_rgb = ", homebridge_last_rgb
+
+	return "%02x%02x%02x\n" % (RGB[0], RGB[1], RGB[2])
+
+@app.get('/device/holiday/homebridge/leds/brightness')
+def homebridge_leds_brightness():
+	RGB = app.licht.get_led_value(0)
+	HLS = colorsys.rgb_to_hls(RGB[0], RGB[1], RGB[2])
+
+
+	print "HLS: ", HLS
+	if HLS[1]:
+		pct = (HLS[1]/255)*100
+	else:
+		pct = 0
+	return "%d\n" % pct
+
+@app.get('/device/holiday/homebridge/leds/brightness/<brightness>')
+def homebridge_leds_brightness(brightness):
+	print "B %s" % brightness
+
+	RGB = app.licht.get_led_value(0)
+	HLS = colorsys.rgb_to_hls(RGB[0], RGB[1], RGB[2])
+	HLS[1] = brightness
+	RGB = colorsys.hls_to_rgb(HLS[0], HLS[1], HLS[2])
+
+	apt.licht.set_light_values(RGB)
+
+	return "1\n"
+
 
 def new_run():
 	""" This is the real run method, we hope"""

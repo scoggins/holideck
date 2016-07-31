@@ -1,4 +1,4 @@
-  #!/usr/bin/python
+#!/usr/bin/python
 #
 """
 Internet of Things Access Server - MooresCloud preliminary implementation for Holiday
@@ -317,9 +317,12 @@ def homebridge_switch_status():
 @app.get('/device/holiday/homebridge/leds/set/<rgb>')
 def homebridge_leds_set(rgb):
 	global homebridge_last_rgb
+
+	print "New Colour: ", rgb
 	R = int(rgb[:2], 16)
 	G = int(rgb[2:4], 16)
 	B = int(rgb[4:6], 16)
+	print "New: [%d, %d, %d]" % (R, G, B)
 	app.licht.set_light_values([R, G, B])
 	homebridge_last_rgb = list(app.licht.get_led_value(0))
 
@@ -328,7 +331,7 @@ def homebridge_leds_set(rgb):
 @app.get('/device/holiday/homebridge/leds/set')
 def homebridge_leds_set():
 	RGB = app.licht.get_led_value(0)
-]	return "%02x%02x%02x\n" % (RGB[0], RGB[1], RGB[2])
+	return "%02x%02x%02x\n" % (RGB[0], RGB[1], RGB[2])
 
 @app.get('/device/holiday/homebridge/leds/brightness')
 def homebridge_leds_brightness():

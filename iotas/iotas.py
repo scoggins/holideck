@@ -17,6 +17,7 @@ import json, socket, os, sys
 import drawlight, setlights
 from bottle import Bottle, run, static_file, post, request, error, abort
 import colorsys
+import threading
 
 # On the command line we can tell iotas to go into real mode possibly
 # invoke as python iotas.py nosim to avoid simulation mode -- which holideck won't
@@ -32,7 +33,9 @@ else:
 app = Bottle()
 app.devices = []
 app.licht = 0
+app.light_lock = threading.Lock()
 app.toggleState = False
+app.homebridge_last_rgb = [0, 0, 0]
 
 # Add in SWIFT modules
 try:
@@ -52,7 +55,7 @@ else:
 print "Startup directory %s" % docroot
 default_name = 'index.html'
 
-homebridge_last_rgb = [0, 0, 0]
+
 
 # If we 404, we go to the root.
 # Let's do the basic page loadery here
@@ -288,20 +291,22 @@ def afl():
 
 @app.get('/device/holiday/homebridge/switch/on')
 def homebridge_switch_on():
-	global homebridge_last_rgb
 
 	RGB = [ 255, 255, 255 ]
-	if homebridge_last_rgb != [0, 0, 0]:
-		RGB = homebridge_last_rgb
+	if app.homebridge_last_rgb != [0, 0, 0]:
+		RGB = app.homebridge_last_rgb
+	app.light_lock.acquire()
 	app.licht.set_light_values(RGB)
+	app.light_lock.release()
 	return "1\n"
 
 @app.get('/device/holiday/homebridge/switch/off')
 def homebridge_switch_off():
-	global homebridge_last_rgb
-	
-	homebridge_last_rgb = list(app.licht.get_led_value(0))
+
+	app.homebridge_last_rgb = list(app.licht.get_led_value(0))
+	app.light_lock.acquire()
 	app.licht.set_light_values([0, 0, 0])
+	app.light_lock.release()
 	return "1\n"
 
 @app.get('/device/holiday/homebridge/switch/status')
@@ -316,13 +321,14 @@ def homebridge_switch_status():
 
 @app.get('/device/holiday/homebridge/leds/set/<rgb>')
 def homebridge_leds_set(rgb):
-	global homebridge_last_rgb
 
 	R = int(rgb[:2], 16)
 	G = int(rgb[2:4], 16)
 	B = int(rgb[4:6], 16)
+	app.light_lock.acquire()
 	app.licht.set_light_values([R, G, B])
-	homebridge_last_rgb = list(app.licht.get_led_value(0))
+	app.light_lock.release()
+	app.homebridge_last_rgb = list(app.licht.get_led_value(0))
 
 	return "1\n"
 
@@ -348,7 +354,9 @@ def homebridge_leds_brightness(brightness):
 	HLS[1] = brightness
 	RGB = colorsys.hls_to_rgb(HLS[0], HLS[1], HLS[2])
 
+	app.light_lock.acquire()
 	apt.licht.set_light_values(RGB)
+	app.light_lock.release()
 
 	return "1\n"
 
@@ -428,7 +436,7 @@ def old_run(port):
 	print "Running..."
 	# Try to run on port 80, if that fails, go to 8080
 	try:
-		app.run(host='0.0.0.0', port=80, debug=False, server=the_srv)
+		app.run(host='0.0.0.0', port=80, debug=True, server=the_srv)
 	except socket.error as msg:
 
 		# Starting with port 8080, try to grab a port!
@@ -436,7 +444,7 @@ def old_run(port):
 		socknum = port
 		while starting:
 			try:	
-				app.run(host='0.0.0.0', port=socknum, server=the_srv, debug=False)  # Start the server
+				app.run(host='0.0.0.0', port=socknum, server=the_srv, debug=True)  # Start the server
 				starting = False
 			except socket.error as msg:
 				print("Port %s not available, trying another" % socknum)

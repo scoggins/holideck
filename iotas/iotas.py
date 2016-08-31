@@ -37,7 +37,7 @@ app.light_lock = threading.Lock()
 app.light_timer = None
 app.toggleState = False
 app.homebridge_last_rgb = [255, 255, 255]
-app.homebridge_last_hsv = [ 0, 0, 1.0 ]
+app.homebridge_last_hsv = [ 0, 0, 100]
 app.light_status = 0 
 
 # Add in SWIFT modules
@@ -325,25 +325,21 @@ def homebridge_switch_status():
 
 @app.get('/device/holiday/homebridge/leds/brightness')
 def homebridge_leds_brightness():
-    print "GET /device/holiday/homebridge/legs/brightness"
-    return "%d" % int(app.homebridge_last_hsv[2]*100)
+    return "%d" % app.homebridge_last_hsv[2]
 
 @app.get('/device/holiday/homebridge/leds/brightness/<brightness>')
 def homebridge_leds_brightness(brightness):
-    print "GET /device/holiday/homebridge/legs/brightness/%s" % brightness
-    app.homebridge_last_hsv[2] = float(int(brightness)/100.00)
+    app.homebridge_last_hsv[2] = int(brightness)
     set_light_values()
 
     return "1\n"
 
 @app.get('/device/holiday/homebridge/leds/hue')
 def homebridge_leds_hue():
-    print "GET /device/holiday/homebridge/legs/hue"
     return "%d" % app.homebridge_last_hsv[0]
 
 @app.get('/device/holiday/homebridge/leds/hue/<hue>')
 def homebridge_leds_hue(hue):
-    print "GET /device/holiday/homebridge/legs/hue/%s" % hue
     app.homebridge_last_hsv[0] = int(hue)
     set_light_values()
 
@@ -351,13 +347,11 @@ def homebridge_leds_hue(hue):
 
 @app.get('/device/holiday/homebridge/leds/saturation')
 def homebridge_leds_saturation():
-    print "GET /device/holiday/homebridge/legs/saturation"
-    return "%d" % int(app.homebridge_last_hsv[1]*100)
+    return "%d" % app.homebridge_last_hsv[1]
 
 @app.get('/device/holiday/homebridge/leds/saturation/<saturation>')
 def homebridge_leds_saturation(saturation):
-    print "GET /device/holiday/homebridge/legs/saturation/%s" % saturation
-    app.homebridge_last_hsv[1] = float(int(saturation)/100.00)
+    app.homebridge_last_hsv[1] = int(saturation)
     set_light_values()
 
     return "1\n"
@@ -365,12 +359,11 @@ def homebridge_leds_saturation(saturation):
 def set_light_values(RGB=None, timer=False):
     if app.light_status:
         HSV = app.homebridge_last_hsv
-        RGB = tuple(int(i * 255) for i in colorsys.hsv_to_rgb(HSV[0], HSV[1], HSV[2]))
+        RGB = tuple(int(i * 255) for i in colorsys.hsv_to_rgb(HSV[0]/360.00, HSV[1]/100.00, HSV[2]/100.00))
     else:
         HSV = [0, 0, 0]
         RGB = [0, 0, 0]
 
-    print "Settings the lights to RGB ", RGB, " HSV ", HSV
     with app.light_lock:
         app.licht.set_light_values(RGB)
 
